@@ -1,0 +1,25 @@
+# Core Python libraries
+numpy
+pandas
+
+# Data visualization
+matplotlib
+seaborn
+
+# Machine learning
+scikit-learn
+xgboost
+
+# Deep learning (optional, if you want to try neural nets later)
+tensorflow
+keras
+
+# Data imbalance handling
+imblearn   # (imbalanced-learn package)
+
+# Utilities
+jupyter
+notebook
+
+# Logging & Experiment tracking (optional, useful for scaling later)
+mlflow

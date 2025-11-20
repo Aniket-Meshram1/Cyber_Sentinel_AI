@@ -1,0 +1,10 @@
+# Ignore dataset folders
+data/raw/
+data/processed/
+
+# Ignore Jupyter checkpoint files
+**/.ipynb_checkpoints/
+
+# Ignore temporary files
+*.log
+*.tmp
