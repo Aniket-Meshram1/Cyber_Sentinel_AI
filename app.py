@@ -29,7 +29,7 @@ def predict():
 
     try:
         # Get JSON data
-        data = request.get_json()
+        data = request.get_json(force=True)
         
         # Get expected features from the model if available (XGBoost/Sklearn usually store this)
         expected_columns = getattr(model, "feature_names_in_", None)
@@ -47,7 +47,6 @@ def predict():
         })
 
     except Exception as e:
-        print(f"API Error: {str(e)}")
         return jsonify({"error": str(e)}), 400
 
 if __name__ == '__main__':
