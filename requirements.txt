@@ -23,3 +23,6 @@ notebook
 
 # Logging & Experiment tracking (optional, useful for scaling later)
 mlflow
+
+# Backend API
+flask
