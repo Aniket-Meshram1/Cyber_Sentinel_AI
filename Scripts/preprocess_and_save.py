@@ -38,7 +38,7 @@ def preprocess_and_save():
     output_file = os.path.join(PROCESSED_DATA_PATH, "cicddos2019_processed.csv")
     df_processed.to_csv(output_file, index=False)
 
-    print(f"✅ Processed dataset saved at {output_file}")
+    print(f"Processed dataset saved at {output_file}")
     print(f"Shape: {df_processed.shape}")
 
 if __name__ == "__main__":

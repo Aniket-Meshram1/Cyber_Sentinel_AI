@@ -6,7 +6,7 @@ DATA_PATH = os.path.join("data", "raw")
 
 def load_sample_file():
     # Just pick one CSV file from your dataset folder
-    sample_file = os.path.join(DATA_PATH, "D:\Downloads\csvDataset\Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv")  # change to any file you have
+    sample_file = os.path.join(DATA_PATH, "Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv")  # change to any file you have
     if not os.path.exists(sample_file):
         raise FileNotFoundError(f"File not found: {sample_file}")
 
