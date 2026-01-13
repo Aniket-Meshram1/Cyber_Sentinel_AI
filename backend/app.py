@@ -1,7 +1,7 @@
 import os
 import joblib
 import pandas as pd
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from utils.preprocess_input import preprocess_input
 
 app = Flask(__name__)
@@ -20,7 +20,7 @@ else:
 
 @app.route('/')
 def home():
-    return "Cyber Sentinel AI Backend is Running!"
+    return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -29,7 +29,7 @@ def predict():
 
     try:
         # Get JSON data
-        data = request.get_json()
+        data = request.get_json(force=True)
         
         # Get expected features from the model if available (XGBoost/Sklearn usually store this)
         expected_columns = getattr(model, "feature_names_in_", None)
