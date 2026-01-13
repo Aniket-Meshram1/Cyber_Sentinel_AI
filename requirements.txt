@@ -26,3 +26,4 @@ mlflow
 
 # Backend API
 flask
+requests
