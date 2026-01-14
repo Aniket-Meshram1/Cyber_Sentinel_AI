@@ -6,67 +6,94 @@ from utils.preprocess_input import preprocess_input
 
 app = Flask(__name__)
 
-# Paths
+# Model Registry
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "models", "xgboost_ddos.joblib")
 
-# Load model
-if os.path.exists(MODEL_PATH):
-    print(f"Loading model from {MODEL_PATH}")
-    model = joblib.load(MODEL_PATH)
-else:
-    model = None
-    print("Model not found")
+MODEL_PATHS = {
+    "xgboost": os.path.join(BASE_DIR, "saved_models", "xgboost_ddos.joblib"),
+    "lightgbm": os.path.join(BASE_DIR, "saved_models", "lightgbm_ddos.joblib"),
+    "random_forest": os.path.join(BASE_DIR, "saved_models", "random_forest_ddos.joblib"),
+    "logistic_regression": os.path.join(BASE_DIR, "saved_models", "logistic_regression_ddos.joblib")
+}
 
+MODELS = {}
+
+for name, path in MODEL_PATHS.items():
+    if os.path.exists(path):
+        MODELS[name] = joblib.load(path)
+        print(f"Loaded {name} model")
+    else:
+        print(f"Model missing: {path}")
+
+# Health Check
 @app.route("/")
 def home():
-    return "Cyber Sentinel AI Backend is Running!"
+    return jsonify({
+        "message": "Cyber Sentinel AI Backend Running",
+        "available_models": list(MODELS.keys())
+    })
 
-# ---------------- SINGLE PREDICTION ----------------
+# Helper: Get Model
+def get_model(model_name):
+    if model_name not in MODELS:
+        return None
+    return MODELS[model_name]
+
+# Single Record Prediction
 @app.route("/predict", methods=["POST"])
 def predict():
-    if model is None:
-        return jsonify({"error": "Model not loaded"}), 500
-
     try:
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 415
+        model_name = request.args.get("model", "xgboost")
+        model = get_model(model_name)
 
-        data = request.get_json()
-        df = pd.DataFrame([data])
+        if model is None:
+            return jsonify({"error": "Invalid model name"}), 400
+
+        # JSON input
+        if request.is_json:
+            data = request.get_json()
+            df = pd.DataFrame([data])
+        # form-data input
+        elif request.form:
+            df = pd.DataFrame([dict(request.form)])
+        else:
+            return jsonify({"error": "Unsupported content type"}), 415
 
         df = df.apply(pd.to_numeric, errors="coerce").fillna(0)
 
         expected_columns = getattr(model, "feature_names_in_", None)
-        processed = preprocess_input(df, expected_columns)
+        processed_df = preprocess_input(df, expected_columns)
 
-        pred = model.predict(processed)[0]
-        label = "DDoS Attack" if pred == 1 else "Normal"
+        prediction = model.predict(processed_df)[0]
+        label = "DDoS Attack" if prediction == 1 else "Normal"
 
         return jsonify({
-            "prediction": int(pred),
+            "model_used": model_name,
+            "prediction": int(prediction),
             "label": label
         })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-
-# ---------------- CSV UPLOAD ----------------
+# CSV Upload Prediction
 @app.route("/predict-csv", methods=["POST"])
 def predict_csv():
-    if model is None:
-        return jsonify({"error": "Model not loaded"}), 500
-
-    if "file" not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
-
-    file = request.files["file"]
-
-    if not file.filename.endswith(".csv"):
-        return jsonify({"error": "Only CSV files supported"}), 400
-
     try:
+        model_name = request.args.get("model", "xgboost")
+        model = get_model(model_name)
+
+        if model is None:
+            return jsonify({"error": "Invalid model name"}), 400
+
+        if "file" not in request.files:
+            return jsonify({"error": "No file uploaded"}), 400
+
+        file = request.files["file"]
+
+        if not file.filename.endswith(".csv"):
+            return jsonify({"error": "Only CSV files allowed"}), 400
+
         df = pd.read_csv(file)
 
         expected_columns = getattr(model, "feature_names_in_", None)
@@ -89,6 +116,7 @@ def predict_csv():
             })
 
         return jsonify({
+            "model_used": model_name,
             "total_rows": len(predictions),
             "ddos_detected": ddos_count,
             "normal": len(predictions) - ddos_count,
@@ -98,6 +126,6 @@ def predict_csv():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-
+# Run App
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
