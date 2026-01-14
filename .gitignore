@@ -1,10 +1,30 @@
-# Ignore dataset folders
-data/raw/
-data/processed/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# Ignore Jupyter checkpoint files
-**/.ipynb_checkpoints/
+# Virtual environment
+venv/
+.env/
 
-# Ignore temporary files
+# Logs
+logs/
 *.log
-*.tmp
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ML models (VERY IMPORTANT)
+*.joblib
+saved_models/
+backend/saved_models/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Datasets
+data/
+../data/
+
