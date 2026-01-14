@@ -7,7 +7,7 @@ from tabulate import tabulate  # make sure to install this: pip install tabulate
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-MODEL_DIR = os.path.join(BASE_DIR, "saved_models")
+MODEL_DIR = os.path.join(BASE_DIR, "backend", "saved_models")
 PROCESSED_DATA = os.path.join(BASE_DIR, "data", "processed", "cicddos2019_processed.csv")
 
 def load_model(model_name="random_forest_ddos"):
@@ -69,9 +69,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-def load_model(model_name="random_forest_ddos"):
-    model_path = os.path.join(MODEL_DIR, f"{model_name}.joblib")  # <-- Fix typo here
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"❌ Model not found: {model_path}")
-    print(f"✅ Loaded model: {model_name}")
-    return joblib.load(model_path)

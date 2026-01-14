@@ -8,8 +8,9 @@ import pandas as pd
 import os
 import joblib
 
-RAW_DATA_PATH = os.path.join("data", "raw")
-MODEL_PATH = os.path.join("saved_models")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAW_DATA_PATH = os.path.join(BASE_DIR, "data", "raw")
+MODEL_PATH = os.path.join(BASE_DIR, "backend", "saved_models")
 
 def train_pipeline():
     # Load and preprocess data

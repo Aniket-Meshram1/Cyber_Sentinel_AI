@@ -8,13 +8,14 @@ from sklearn.metrics import classification_report, accuracy_score, confusion_mat
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "data", "processed", "cicddos2019_processed.csv")
-MODEL_DIR = os.path.join(BASE_DIR, "saved_models")
+MODEL_DIR = os.path.join(BASE_DIR, "backend", "saved_models")
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 def train_xgboost():
     print(" Loading processed dataset...")
     df = pd.read_csv(DATA_PATH)
+    df.columns = df.columns.str.strip()
 
     # Features and label
     X = df.drop("Label", axis=1)

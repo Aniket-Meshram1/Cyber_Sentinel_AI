@@ -11,7 +11,7 @@ import joblib
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 PROCESSED_DATA = os.path.join(BASE_DIR, "data", "processed", "cicddos2019_processed.csv")
-MODEL_DIR = os.path.join(BASE_DIR, "saved_models")
+MODEL_DIR = os.path.join(BASE_DIR, "backend", "saved_models")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 def load_processed_data():
