@@ -15,7 +15,7 @@ MODEL_PATH = os.path.join(BASE_DIR, "backend", "saved_models")
 def train_pipeline():
     # Load and preprocess data
     df = load_all_data(RAW_DATA_PATH)
-    df.columns = df.columns.str.strip()  # <-- Add this line
+    df.columns = df.columns.str.strip() 
     df = clean_data(df)
     df = encode_labels(df)
 
@@ -40,10 +40,12 @@ def train_pipeline():
         y_pred = model.predict(X_test)
         print(classification_report(y_test, y_pred))
 
-        # Save best model (for now save all)
+        # Save best model 
         model_file = os.path.join(MODEL_PATH, f"{name}.pkl")
         joblib.dump(model, model_file)
         print(f"{name} saved at {model_file}")
 
 if __name__ == "__main__":
     train_pipeline()
+
+

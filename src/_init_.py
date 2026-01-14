@@ -9,4 +9,4 @@ df_sample = df.sample(100, random_state=42)
 # Save sample file
 df_sample.to_csv("data/raw/sample_test.csv", index=False)
 
-print("✅ Sample test data saved at data/raw/sample_test.csv")
+print("Sample test data saved at data/raw/sample_test.csv")

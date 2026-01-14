@@ -19,6 +19,8 @@ logs/
 *.joblib
 saved_models/
 backend/saved_models/
+backend/saved_models/*.joblib
+
 
 # OS
 .DS_Store

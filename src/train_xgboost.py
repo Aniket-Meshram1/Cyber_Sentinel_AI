@@ -13,7 +13,7 @@ MODEL_DIR = os.path.join(BASE_DIR, "backend", "saved_models")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 def train_xgboost():
-    print(" Loading processed dataset...")
+    print("Loading processed dataset...")
     df = pd.read_csv(DATA_PATH)
     df.columns = df.columns.str.strip()
 
@@ -26,7 +26,7 @@ def train_xgboost():
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    print("🚀 Training XGBoost model...")
+    print("Training XGBoost model...")
 
     model = XGBClassifier(
         n_estimators=100,
@@ -59,7 +59,7 @@ def train_xgboost():
     model_path = os.path.join(MODEL_DIR, "xgboost_ddos.joblib")
     joblib.dump(model, model_path)
 
-    print(f"\n💾 XGBoost model saved at: {model_path}")
+    print(f"\n XGBoost model saved at: {model_path}")
 
 if __name__ == "__main__":
     train_xgboost()

@@ -28,7 +28,7 @@ def train_lightgbm():
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    print("🚀 Training LightGBM model...")
+    print("Training LightGBM model...")
 
     model = lgb.LGBMClassifier(
         objective="binary",
@@ -59,7 +59,7 @@ def train_lightgbm():
 
     # Save Model
     joblib.dump(model, MODEL_PATH)
-    print(f"💾 LightGBM model saved at: {MODEL_PATH}")
+    print(f"LightGBM model saved at: {MODEL_PATH}")
 
 
 if __name__ == "__main__":
