@@ -167,5 +167,5 @@ def predict_csv():
         return jsonify({"error": "CSV prediction failed"}), 500
 
 if __name__ == "__main__":
-    print(f"🚀 Starting Cyber Sentinel AI Backend on port 5000...")
+    print(f"Starting Cyber Sentinel AI Backend on port 5000...")
     app.run(host="0.0.0.0", port=5000, debug=True)

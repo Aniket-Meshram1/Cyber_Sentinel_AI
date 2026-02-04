@@ -55,7 +55,7 @@ def plot_comparison_for_paper():
     print(f"✅ Saved high-res plot to: {save_path}")
     plt.show()
 
-    # 2. Generate LaTeX Table (Optional for Paper)
+    # 2. Generate LaTeX Table 
     latex_code = df.to_latex(index=False, float_format="%.4f")
     with open(os.path.join(OUTPUT_DIR, "results_table.tex"), "w") as f:
         f.write(latex_code)
