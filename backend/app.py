@@ -13,6 +13,7 @@ MODEL_DIR = os.path.join(BASE_DIR, "saved_models")
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 
 os.makedirs(LOG_DIR, exist_ok=True)
+os.makedirs(MODEL_DIR, exist_ok=True)
 
 # -------------------- LOGGING --------------------
 logging.basicConfig(
@@ -166,4 +167,5 @@ def predict_csv():
         return jsonify({"error": "CSV prediction failed"}), 500
 
 if __name__ == "__main__":
+    print(f"🚀 Starting Cyber Sentinel AI Backend on port 5000...")
     app.run(host="0.0.0.0", port=5000, debug=True)
