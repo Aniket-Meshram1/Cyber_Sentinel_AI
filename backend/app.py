@@ -1,14 +1,32 @@
 import os
+import sys
 import joblib
 import logging
 import pandas as pd
 from flask import Flask, request, jsonify
-from utils.preprocess_input import preprocess_input
 
 # -------------------- APP SETUP --------------------
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Add project root to sys.path to allow imports from utils if located in root
+sys.path.append(os.path.dirname(BASE_DIR))
+
+try:
+    from utils.preprocess_input import preprocess_input
+except ImportError:
+    # Fallback if utils module is missing, ensures app starts
+    print("Warning: utils.preprocess_input not found. Using local fallback.")
+    def preprocess_input(df, feature_names=None):
+        if feature_names is not None:
+            # Ensure all expected features exist, fill missing with 0
+            for col in feature_names:
+                if col not in df.columns:
+                    df[col] = 0
+            # Reorder columns to match model expectation
+            df = df[feature_names]
+        return df
+
 MODEL_DIR = os.path.join(BASE_DIR, "saved_models")
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 
@@ -16,9 +34,12 @@ os.makedirs(LOG_DIR, exist_ok=True)
 
 # -------------------- LOGGING --------------------
 logging.basicConfig(
-    filename=os.path.join(LOG_DIR, "app.log"),
     level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s"
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    handlers=[
+        logging.FileHandler(os.path.join(LOG_DIR, "app.log")),
+        logging.StreamHandler(sys.stdout)
+    ]
 )
 
 # -------------------- INPUT SCHEMA --------------------
@@ -46,8 +67,11 @@ MODELS = {}
 for name, file in MODEL_PATHS.items():
     path = os.path.join(MODEL_DIR, file)
     if os.path.exists(path):
-        MODELS[name] = joblib.load(path)
-        logging.info(f"Loaded model: {name}")
+        try:
+            MODELS[name] = joblib.load(path)
+            logging.info(f"Loaded model: {name}")
+        except Exception as e:
+            logging.error(f"Failed to load model {name}: {e}")
     else:
         logging.warning(f"Model missing: {path}")
 
