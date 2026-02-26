@@ -52,7 +52,8 @@ def process_packet(packet):
             "bwd_packets": 0,
             "fwd_bytes": 0,
             "bwd_bytes": 0,
-            "packet_lengths": [],
+            "fwd_packet_lengths": [],
+            "bwd_packet_lengths": [],
             "packet_times": [],
             "flags": {
                 "FIN": 0,
@@ -68,15 +69,16 @@ def process_packet(packet):
 
     flow = flows[key]
     flow["last_seen"] = current_time
-    flow["packet_lengths"].append(length)
     flow["packet_times"].append(current_time)
 
     if packet[IP].src == key[0]:
         flow["fwd_packets"] += 1
         flow["fwd_bytes"] += length
+        flow["fwd_packet_lengths"].append(length)
     else:
         flow["bwd_packets"] += 1
         flow["bwd_bytes"] += length
+        flow["bwd_packet_lengths"].append(length)
 
     if packet.haslayer(TCP):
         flags = packet[TCP].flags
@@ -109,7 +111,8 @@ while True:
         total_packets = flow["fwd_packets"] + flow["bwd_packets"]
         total_bytes = flow["fwd_bytes"] + flow["bwd_bytes"]
 
-        pkt_lengths = flow["packet_lengths"]
+        fwd_pkt_lengths = flow["fwd_packet_lengths"]
+        bwd_pkt_lengths = flow["bwd_packet_lengths"]
 
         flow_iat = np.diff(flow["packet_times"])
         flow_iat_mean = np.mean(flow_iat) if len(flow_iat) > 0 else 0
@@ -126,16 +129,16 @@ while True:
             "Total Backward Packets": flow["bwd_packets"],
             "Total Length of Fwd Packets": flow["fwd_bytes"],
             "Total Length of Bwd Packets": flow["bwd_bytes"],
-            "Fwd Packet Length Max": max(pkt_lengths),
-            "Fwd Packet Length Min": min(pkt_lengths),
-            "Fwd Packet Length Mean": np.mean(pkt_lengths),
-            "Fwd Packet Length Std": np.std(pkt_lengths),
-            "Bwd Packet Length Max": max(pkt_lengths),
-            "Bwd Packet Length Min": min(pkt_lengths),
-            "Bwd Packet Length Mean": np.mean(pkt_lengths),
-            "Bwd Packet Length Std": np.std(pkt_lengths),
-            "Flow Bytes/s": total_bytes / duration,
-            "Flow Packets/s": total_packets / duration,
+            "Fwd Packet Length Max": max(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
+            "Fwd Packet Length Min": min(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
+            "Fwd Packet Length Mean": np.mean(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
+            "Fwd Packet Length Std": np.std(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
+            "Bwd Packet Length Max": max(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
+            "Bwd Packet Length Min": min(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
+            "Bwd Packet Length Mean": np.mean(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
+            "Bwd Packet Length Std": np.std(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
+            "Flow Bytes/s": (total_bytes / duration) if duration > 0 else 0,
+            "Flow Packets/s": (total_packets / duration) if duration > 0 else 0,
             "Flow IAT Mean": flow_iat_mean,
             "Flow IAT Std": flow_iat_std,
             "Flow IAT Max": flow_iat_max,
