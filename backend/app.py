@@ -205,6 +205,12 @@ def get_stats():
 def get_alerts():
     return jsonify(list(alerts))
 
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    return jsonify({
+        "status": "ok",
+        "available_models": list(MODELS.keys())
+    })
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
