@@ -1,15 +1,13 @@
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "frontend/.next"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
 
-# Skip Python installation for Next.js frontend-only deployment
-# If you need the backend, deploy it separately (e.g., on Render, Railway, or Heroku)
-
+# Redirect API calls to backend (update URL after deploying backend)
 [[redirects]]
   from = "/api/*"
-  to = "https://your-backend-api.com/:splat"
+  to = "https://your-backend-url.onrender.com/:splat"
   status = 200
   force = true
