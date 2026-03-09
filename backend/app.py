@@ -76,6 +76,11 @@ def home():
         "available_models": list(MODELS.keys())
     })
 
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    """Endpoint for frontend health checks via proxy."""
+    return home()
+
 
 @app.route("/predict", methods=["POST"])
 def predict():

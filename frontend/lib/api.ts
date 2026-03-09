@@ -208,7 +208,7 @@ export async function predictCSV(file: File, modelName: string = "xgboost"): Pro
  * Get available models from the backend.
  */
 export async function getAvailableModels(): Promise<string[]> {
-  const response = await fetch(`${API_BASE_URL}/`, { cache: "no-store" });
+  const response = await fetch(`${API_BASE_URL}/api/health`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to fetch models: ${response.statusText}`);
   }
@@ -221,7 +221,7 @@ export async function getAvailableModels(): Promise<string[]> {
  */
 export async function checkBackendHealth(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/`, { 
+    const response = await fetch(`${API_BASE_URL}/api/health`, { 
       method: "GET",
       signal: AbortSignal.timeout(5000)
     });
