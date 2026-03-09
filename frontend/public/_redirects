@@ -1,2 +1,2 @@
-# Next.js routes
-/* /index.html 200
+# Next.js SPA routing - redirect all routes to index.html
+/*    /index.html   200
