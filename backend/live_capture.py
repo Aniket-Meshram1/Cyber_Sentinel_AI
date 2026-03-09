@@ -13,6 +13,10 @@ sys.path.append(os.path.dirname(BASE_DIR))
 
 from utils.preprocess_input import preprocess_input
 
+# Configuration
+API_URL = "https://cyber-sentinelai.onrender.com"
+API_MODEL = "random_forest"  # Model to use on the backend (must match a model loaded in app.py)
+
 flows = {}
 
 def get_flow_key(packet):
@@ -95,85 +99,116 @@ def process_packet(packet):
 MODEL_PATH = os.path.join(BASE_DIR, "saved_models", "random_forest_ddos.joblib")
 model = joblib.load(MODEL_PATH)
 
-while True:
-    flows = {}  # Reset flows for the new window
-    print("Capturing packets for 10 seconds...")
-    sniff(timeout=10, prn=process_packet)
+# --- Backend Health Check & Model Sync ---
+print(f"Checking backend health at {API_URL}...")
+try:
+    resp = requests.get(f"{API_URL}/", timeout=5)
+    if resp.status_code == 200:
+        data = resp.json()
+        available = data.get('available_models', [])
+        print(f"✅ Backend Online. Available Models: {available}")
+        
+        if API_MODEL not in available:
+            if available:
+                print(f"⚠️ Warning: Configured model '{API_MODEL}' not found on backend.")
+                print(f"👉 Switching to '{available[0]}' automatically.")
+                API_MODEL = available[0]
+            else:
+                print("❌ CRITICAL: No models loaded on the backend!")
+                print("   Ensure you have pushed the .joblib files to backend/saved_models/ on GitHub.")
+                sys.exit(1)
+    else:
+        print(f"⚠️ Backend returned status {resp.status_code}")
+except Exception as e:
+    print(f"⚠️ Could not connect to backend: {e}")
 
-    print("\nEvaluating Flows...\n")
+try:
+    while True:
+        flows = {}  # Reset flows for the new window
+        print("Capturing packets for 10 seconds...")
+        sniff(timeout=10, prn=process_packet)
 
-    for key, flow in flows.items():
+        print("\nEvaluating Flows...\n")
 
-        duration = flow["last_seen"] - flow["start_time"]
-        if duration <= 0:
-            continue
+        for key, flow in flows.items():
 
-        total_packets = flow["fwd_packets"] + flow["bwd_packets"]
-        total_bytes = flow["fwd_bytes"] + flow["bwd_bytes"]
+            duration = flow["last_seen"] - flow["start_time"]
+            if duration <= 0:
+                continue
 
-        fwd_pkt_lengths = flow["fwd_packet_lengths"]
-        bwd_pkt_lengths = flow["bwd_packet_lengths"]
+            total_packets = flow["fwd_packets"] + flow["bwd_packets"]
+            total_bytes = flow["fwd_bytes"] + flow["bwd_bytes"]
 
-        flow_iat = np.diff(flow["packet_times"])
-        flow_iat_mean = np.mean(flow_iat) if len(flow_iat) > 0 else 0
-        flow_iat_std = np.std(flow_iat) if len(flow_iat) > 0 else 0
-        flow_iat_max = np.max(flow_iat) if len(flow_iat) > 0 else 0
-        flow_iat_min = np.min(flow_iat) if len(flow_iat) > 0 else 0
+            fwd_pkt_lengths = flow["fwd_packet_lengths"]
+            bwd_pkt_lengths = flow["bwd_packet_lengths"]
 
-        feature_dict = {
-            "Source Port": key[2],
-            "Destination Port": key[3],
-            "Protocol": key[4],
-            "Flow Duration": duration,
-            "Total Fwd Packets": flow["fwd_packets"],
-            "Total Backward Packets": flow["bwd_packets"],
-            "Total Length of Fwd Packets": flow["fwd_bytes"],
-            "Total Length of Bwd Packets": flow["bwd_bytes"],
-            "Fwd Packet Length Max": max(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
-            "Fwd Packet Length Min": min(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
-            "Fwd Packet Length Mean": np.mean(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
-            "Fwd Packet Length Std": np.std(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
-            "Bwd Packet Length Max": max(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
-            "Bwd Packet Length Min": min(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
-            "Bwd Packet Length Mean": np.mean(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
-            "Bwd Packet Length Std": np.std(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
-            "Flow Bytes/s": (total_bytes / duration) if duration > 0 else 0,
-            "Flow Packets/s": (total_packets / duration) if duration > 0 else 0,
-            "Flow IAT Mean": flow_iat_mean,
-            "Flow IAT Std": flow_iat_std,
-            "Flow IAT Max": flow_iat_max,
-            "Flow IAT Min": flow_iat_min,
-            "FIN Flag Count": flow["flags"]["FIN"],
-            "SYN Flag Count": flow["flags"]["SYN"],
-            "RST Flag Count": flow["flags"]["RST"],
-            "PSH Flag Count": flow["flags"]["PSH"],
-            "ACK Flag Count": flow["flags"]["ACK"],
-            "URG Flag Count": flow["flags"]["URG"],
-            "CWE Flag Count": flow["flags"]["CWE"],
-            "ECE Flag Count": flow["flags"]["ECE"],
-        }
+            flow_iat = np.diff(flow["packet_times"])
+            flow_iat_mean = np.mean(flow_iat) if len(flow_iat) > 0 else 0
+            flow_iat_std = np.std(flow_iat) if len(flow_iat) > 0 else 0
+            flow_iat_max = np.max(flow_iat) if len(flow_iat) > 0 else 0
+            flow_iat_min = np.min(flow_iat) if len(flow_iat) > 0 else 0
 
-        df = pd.DataFrame([feature_dict])
-        json_payload = df.to_dict(orient="records")[0]
+            feature_dict = {
+                "Source Port": key[2],
+                "Destination Port": key[3],
+                "Protocol": key[4],
+                "Flow Duration": duration,
+                "Total Fwd Packets": flow["fwd_packets"],
+                "Total Backward Packets": flow["bwd_packets"],
+                "Total Length of Fwd Packets": flow["fwd_bytes"],
+                "Total Length of Bwd Packets": flow["bwd_bytes"],
+                "Fwd Packet Length Max": max(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
+                "Fwd Packet Length Min": min(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
+                "Fwd Packet Length Mean": np.mean(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
+                "Fwd Packet Length Std": np.std(fwd_pkt_lengths) if fwd_pkt_lengths else 0,
+                "Bwd Packet Length Max": max(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
+                "Bwd Packet Length Min": min(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
+                "Bwd Packet Length Mean": np.mean(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
+                "Bwd Packet Length Std": np.std(bwd_pkt_lengths) if bwd_pkt_lengths else 0,
+                "Flow Bytes/s": (total_bytes / duration) if duration > 0 else 0,
+                "Flow Packets/s": (total_packets / duration) if duration > 0 else 0,
+                "Flow IAT Mean": flow_iat_mean,
+                "Flow IAT Std": flow_iat_std,
+                "Flow IAT Max": flow_iat_max,
+                "Flow IAT Min": flow_iat_min,
+                "FIN Flag Count": flow["flags"]["FIN"],
+                "SYN Flag Count": flow["flags"]["SYN"],
+                "RST Flag Count": flow["flags"]["RST"],
+                "PSH Flag Count": flow["flags"]["PSH"],
+                "ACK Flag Count": flow["flags"]["ACK"],
+                "URG Flag Count": flow["flags"]["URG"],
+                "CWE Flag Count": flow["flags"]["CWE"],
+                "ECE Flag Count": flow["flags"]["ECE"],
+            }
 
-        # Add metadata for backend display (not used for prediction)
-        json_payload["Source IP"] = key[0]
-        json_payload["Destination IP"] = key[1]
+            df = pd.DataFrame([feature_dict])
+            json_payload = df.to_dict(orient="records")[0]
 
-        df = preprocess_input(df, getattr(model, "feature_names_in_", None))
-        prediction = model.predict(df)
+            # Add metadata for backend display (not used for prediction)
+            json_payload["Source IP"] = key[0]
+            json_payload["Destination IP"] = key[1]
 
-        label = "DDoS Attack" if prediction[0] == 1 else "Normal"
+            df = preprocess_input(df, getattr(model, "feature_names_in_", None))
+            prediction = model.predict(df)
 
-        # SEND EVERY FLOW TO BACKEND
-        try:
-            requests.post(
-                "http://127.0.0.1:5000/predict?model=random_forest",
-                json=json_payload,
-                timeout=2
-            )
-        except Exception as e:
-            print("Failed to send to backend:", e)
+            label = "DDoS Attack" if prediction[0] == 1 else "Normal"
 
-        print(f"{label}: {key}")
-        print("=" * 60)
+            # SEND EVERY FLOW TO BACKEND
+            try:
+                response = requests.post(
+                    f"{API_URL}/predict?model={API_MODEL}",
+                    json=json_payload,
+                    timeout=2
+                )
+                if response.status_code == 200:
+                    print(f"✅ Sent to backend: {label}")
+                else:
+                    print(f"❌ Backend Error {response.status_code}: {response.text[:100]}")
+            except Exception as e:
+                print("⚠️ Failed to send to backend (Connection Error):", e)
+
+            print(f"{label}: {key}")
+            print("=" * 60)
+except KeyboardInterrupt:
+    print("\n Capture stopped by user.")
+    sys.exit(0)
