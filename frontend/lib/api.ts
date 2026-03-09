@@ -1,6 +1,6 @@
 // frontend/lib/api.ts
 
-const API_BASE_URL = "http://127.0.0.1:5000";
+const API_BASE_URL = "https://cyber-sentinelai.onrender.com";
 
 /**
  * Defines the structure for the main statistics object from the backend.
