@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: cyber-sentinel-backend
+    repo: https://github.com/Aniket-Meshram1/Cyber_Sentinel_AI
+    env: python
+    region: oregon
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.10.0"
+      - key: pip
+        value: pip
+    autoDeploy: true
