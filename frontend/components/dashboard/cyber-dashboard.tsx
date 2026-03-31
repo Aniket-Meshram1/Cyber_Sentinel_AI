@@ -39,8 +39,15 @@ export function CyberDashboard() {
 
     const fetchData = async () => {
       try {
-        // 1. Fetch live stats from the backend
-        const stats: SystemStats = await fetchStats()
+
+        const statsRes = await fetchStats()
+        const stats: SystemStats = statsRes.data ?? {
+          total_flows: 0,
+          normal: 0,
+          attacks: 0,
+          recent_attack_ratio: 0,
+          status: 'SAFE'
+        }
         setFlowData({
           totalFlows: stats.total_flows,
           normalFlows: stats.normal,
@@ -49,7 +56,8 @@ export function CyberDashboard() {
         })
 
         // 2. Fetch live alerts from the backend
-        const apiAlerts: ApiAlert[] = await fetchAlerts()
+        const alertsRes = await fetchAlerts()
+        const apiAlerts: ApiAlert[] = alertsRes.data ?? []
         const formattedAlerts: AlertEntry[] = apiAlerts.map(alert => ({
           id: `${alert.timestamp}-${alert.source_ip}`,
           time: new Date(alert.timestamp).toLocaleTimeString(),
