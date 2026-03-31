@@ -1,233 +1,177 @@
 // frontend/lib/api.ts
 
-// By using relative paths, we leverage Netlify redirects in production
-// and Next.js rewrites in local development.
+const BASE_URL = "/api"
 
-/**
- * Defines the structure for the main statistics object from the backend.
- */
+// Generic safe API handler
+async function safeApiCall<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  retries = 3
+): Promise<{ data: T | null; error: string | null }> {
+  for (let i = 0; i <= retries; i++) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+
+    try {
+      const res = await fetch(`${BASE_URL}${endpoint}`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
+        ...options,
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeout)
+
+      // ✅ Success
+      if (res.ok) {
+        try {
+          const json = await res.json()
+          return { data: json, error: null }
+        } catch {
+          return { data: null, error: "Invalid JSON response" }
+        }
+      }
+
+      // ❌ Don't retry client errors (400–499)
+      if (res.status >= 400 && res.status < 500) {
+        return { data: null, error: `Client error ${res.status}` }
+      }
+
+      // 🔁 Retry for server errors
+      if (i < retries) {
+        await new Promise((r) => setTimeout(r, 2000 * (i + 1)))
+        continue
+      }
+
+      return { data: null, error: `Server error ${res.status}` }
+
+    } catch (err: any) {
+      clearTimeout(timeout)
+
+      // Abort / timeout
+      if (err.name === "AbortError") {
+        if (i === retries) {
+          return { data: null, error: "Request timeout" }
+        }
+      }
+
+      // Network retry
+      if (i < retries) {
+        await new Promise((r) => setTimeout(r, 2000 * (i + 1)))
+        continue
+      }
+
+      return { data: null, error: "Network error" }
+    }
+  }
+
+  return { data: null, error: "Unknown error" }
+}
+
+// -----------------------------
+// Types
+// -----------------------------
+
 export interface SystemStats {
-  total_flows: number;
-  normal: number;
-  attacks: number;
-  recent_attack_ratio: number;
-  status: "SAFE" | "THREAT";
-  packets_per_sec: number;
-  bytes_per_sec: number;
+  total_flows: number
+  normal: number
+  attacks: number
+  recent_attack_ratio: number
+  status: "SAFE" | "THREAT"
 }
 
-/**
- * Defines the structure for a single alert entry from the backend.
- */
 export interface ApiAlert {
-  model_used: string;
-  prediction: 0 | 1;
-  label: "Normal" | "DDoS Attack";
-  timestamp: string;
-  source_ip?: string;
-  destination_ip?: string;
-  protocol?: string;
+  model_used: string
+  prediction: 0 | 1
+  label: "Normal" | "DDoS Attack"
+  timestamp: string
+  source_ip?: string
+  destination_ip?: string
+  protocol?: string
 }
 
-/**
- * Defines the structure for prediction result
- */
-export interface PredictionResult {
-  model_used: string;
-  prediction: number;
-  label: string;
-  timestamp: string;
-  source_ip: string;
-  destination_ip: string;
-  protocol: string;
+// -----------------------------
+// Fallbacks
+// -----------------------------
+
+const FALLBACK_STATS: SystemStats = {
+  total_flows: 0,
+  normal: 0,
+  attacks: 0,
+  recent_attack_ratio: 0,
+  status: "SAFE",
 }
 
-/**
- * CSV Prediction result
- */
-export interface CSVPredictionResult {
-  model_used: string;
-  total_rows: number;
-  ddos_detected: number;
-  normal: number;
+// -----------------------------
+// API Functions
+// -----------------------------
+
+export async function fetchStats() {
+  const { data, error } = await safeApiCall<SystemStats>("/stats")
+  return { data: data || FALLBACK_STATS, error }
 }
 
-/**
- * Flow data for single prediction
- */
-export interface FlowDataInput {
-  "Source IP": string;
-  "Destination IP": string;
-  "Source Port": number;
-  "Destination Port": number;
-  Protocol: number;
-  "Flow Duration": number;
-  "Total Fwd Packets": number;
-  "Total Backward Packets": number;
-  "Total Length of Fwd Packets": number;
-  "Total Length of Bwd Packets": number;
-  "Fwd Packet Length Max": number;
-  "Fwd Packet Length Min": number;
-  "Fwd Packet Length Mean": number;
-  "Bwd Packet Length Max": number;
-  "Bwd Packet Length Min": number;
-  "Bwd Packet Length Mean": number;
-  "Flow Bytes/s": number;
-  "Flow Packets/s": number;
-  "Flow IAT Mean": number;
-  "Flow IAT Std": number;
-  "Flow IAT Max": number;
-  "Flow IAT Min": number;
-  "Fwd IAT Total": number;
-  "Fwd IAT Mean": number;
-  "Fwd IAT Std": number;
-  "Fwd IAT Max": number;
-  "Fwd IAT Min": number;
-  "Bwd IAT Total": number;
-  "Bwd IAT Mean": number;
-  "Bwd IAT Std": number;
-  "Bwd IAT Max": number;
-  "Bwd IAT Min": number;
-  "Min Packet Length": number;
-  "Max Packet Length": number;
-  "Packet Length Mean": number;
-  "Packet Length Std": number;
-  "FIN Flag Count": number;
-  "SYN Flag Count": number;
-  "RST Flag Count": number;
-  "PSH Flag Count": number;
-  "ACK Flag Count": number;
-  "URG Flag Count": number;
-  "CWE Flag Count": number;
-  "ECE Flag Count": number;
-  "Down/Up Ratio": number;
-  "Average Packet Size": number;
-  "Avg Fwd Segment Size": number;
-  "Avg Bwd Segment Size": number;
-  "Fwd Header Length": number;
-  "Bwd Header Length": number;
-  "Fwd Bytes/Bulk Avg": number;
-  "Fwd Packet/Bulk Avg": number;
-  "Fwd Bulk Rate": number;
-  "Bwd Bytes/Bulk Avg": number;
-  "Bwd Packet/Bulk Avg": number;
-  "Bwd Bulk Rate": number;
-  "Subflow Fwd Packets": number;
-  "Subflow Fwd Bytes": number;
-  "Subflow Bwd Packets": number;
-  "Subflow Bwd Bytes": number;
-  "Init_Win_bytes_forward": number;
-  "Init_Win_bytes_backward": number;
-  "act_data_pkt_fwd": number;
-  "min_seg_size_forward": number;
-  "Active Mean": number;
-  "Active Std": number;
-  "Active Max": number;
-  "Active Min": number;
-  "Idle Mean": number;
-  "Idle Std": number;
-  "Idle Max": number;
-  "Idle Min": number;
+export async function fetchAlerts() {
+  const { data, error } = await safeApiCall<ApiAlert[]>("/alerts")
+  return { data: data || [], error }
 }
 
-/**
- * Fetches the main system statistics from the backend.
- */
-export async function fetchStats(): Promise<SystemStats> {
-  const response = await fetch(`/api/stats`, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch system stats: ${response.statusText}`);
+export async function getAvailableModels() {
+  const { data, error } = await safeApiCall<{ available_models: string[] }>("/health")
+  return {
+    data: data?.available_models || ["xgboost", "lightgbm"],
+    error,
   }
-  return response.json();
 }
 
-/**
- * Fetches the list of recent alerts from the backend.
- */
-export async function fetchAlerts(): Promise<ApiAlert[]> {
-  const response = await fetch(`/api/alerts`, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch alerts: ${response.statusText}`);
-  }
-  const alerts: ApiAlert[] = await response.json();
-  // Reverse to show the most recent alerts first
-  return alerts.reverse();
-}
+// -----------------------------
+// Prediction APIs (FIXED)
+// -----------------------------
 
-/**
- * Get the latest prediction from the backend.
- */
-export async function fetchLatestPrediction(): Promise<PredictionResult> {
-  const response = await fetch(`/api/latest`, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch latest prediction: ${response.statusText}`);
-  }
-  return response.json();
-}
-
-/**
- * Make a single flow prediction.
- * @param flowData - The flow data to predict
- * @param modelName - Optional model name (default: xgboost)
- */
-export async function predictFlow(flowData: FlowDataInput, modelName: string = "xgboost"): Promise<PredictionResult> {
-  const response = await fetch(`/api/predict?model=${modelName}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+export async function predictFlow(
+  flowData: any,
+  model = "xgboost"
+) {
+  const { data, error } = await safeApiCall(
+    `/predict?model=${model}`,
+    {
+      method: "POST",
+      body: JSON.stringify(flowData),
     },
-    body: JSON.stringify(flowData),
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Prediction failed: ${response.statusText}`);
-  }
-  return response.json();
+    1
+  )
+
+  if (error) throw new Error(error)
+  return data
 }
 
-/**
- * Upload a CSV file for batch prediction.
- * @param file - The CSV file to predict
- * @param modelName - Optional model name (default: xgboost)
- */
-export async function predictCSV(file: File, modelName: string = "xgboost"): Promise<CSVPredictionResult> {
-  const formData = new FormData();
-  formData.append("file", file);
-  
-  const response = await fetch(`/api/predict-csv?model=${modelName}`, {
-    method: "POST",
-    body: formData,
-  });
-  
-  if (!response.ok) {
-    throw new Error(`CSV prediction failed: ${response.statusText}`);
-  }
-  return response.json();
+export async function predictCSV(
+  file: File,
+  model = "xgboost"
+) {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const { data, error } = await safeApiCall(
+    `/predict-csv?model=${model}`,
+    {
+      method: "POST",
+      body: formData,
+    },
+    1
+  )
+
+  if (error) throw new Error(error)
+  return data
 }
 
-/**
- * Get available models from the backend.
- */
-export async function getAvailableModels(): Promise<string[]> {
-  const response = await fetch(`/api/health`, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch models: ${response.statusText}`);
-  }
-  const data = await response.json();
-  return data.available_models || [];
-}
+// -----------------------------
+// Health check
+// -----------------------------
 
-/**
- * Check backend health/connection.
- */
 export async function checkBackendHealth(): Promise<boolean> {
-  try {
-    const response = await fetch(`/api/health`, { 
-      method: "GET",
-      signal: AbortSignal.timeout(5000)
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+  const { data } = await safeApiCall("/health")
+  return !!data
 }
