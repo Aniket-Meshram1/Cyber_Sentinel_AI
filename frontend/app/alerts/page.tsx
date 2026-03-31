@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { AlertTriangle, Bell, Filter, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { fetchAlerts, type ApiAlert } from '@/lib/api'
@@ -18,14 +18,9 @@ const generateAlertData = () => {
 }
 
 const getSeverityColor = (label: string) => {
-  if (label === 'DDoS Attack') {
-    return 'bg-red-500/20 text-red-300'
-  }
-  return 'bg-green-500/20 text-green-300'
-}
-
-const getStatusColor = (prediction: number) => {
-  return prediction === 1 ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'
+  return label === 'DDoS Attack'
+    ? 'bg-red-500/20 text-red-300'
+    : 'bg-green-500/20 text-green-300'
 }
 
 export default function Alerts() {
@@ -35,37 +30,58 @@ export default function Alerts() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const isFetching = useRef(false)
+
+  // ✅ Fixed fetch function
   const fetchAlertsData = async () => {
+    if (isFetching.current) return
+    isFetching.current = true
+
     try {
-      const data = await fetchAlerts()
-      setAlerts(data)
-      setError(null)
+      const res = await fetchAlerts()
+
+      setAlerts(res.data ?? [])
+
+      if (res.error) {
+        setError(res.error)
+      } else {
+        setError(null)
+      }
+
     } catch (e) {
-      setError(`Failed to fetch alerts: ${e instanceof Error ? e.message : 'Unknown error'}`)
+      setError("Unexpected error occurred")
     } finally {
       setLoading(false)
+      isFetching.current = false
     }
   }
 
+  // ✅ Polling (fixed)
   useEffect(() => {
     fetchAlertsData()
-    const interval = setInterval(fetchAlertsData, 3000)
+
+    const interval = setInterval(() => {
+      fetchAlertsData()
+    }, 5000)
+
     return () => clearInterval(interval)
   }, [])
 
+  // Simulated chart updates
   useEffect(() => {
     const interval = setInterval(() => {
       setAlertData(generateAlertData())
     }, 4000)
+
     return () => clearInterval(interval)
   }, [])
 
   const filteredAlerts = alerts.filter(alert => {
-    const matchesSearch = 
+    return (
       (alert.source_ip?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (alert.destination_ip?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       alert.label.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesSearch
+    )
   })
 
   const stats = {
@@ -75,21 +91,35 @@ export default function Alerts() {
     low: alerts.filter(a => a.prediction === 0).length,
   }
 
+  // ✅ Initial loader
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-10 h-10 border-2 border-neon-green/30 border-t-neon-green rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="p-8">
+
+        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Security Alerts</h1>
-          <p className="text-muted-foreground mt-2">Monitor and manage active security alerts</p>
+          <p className="text-muted-foreground mt-2">
+            Monitor and manage active security alerts
+          </p>
         </div>
 
+        {/* Error */}
         {error && (
-          <div className="bg-red-900/50 border border-red-700 text-red-200 p-4 rounded-lg mb-6">
+          <div className="bg-yellow-900/40 border border-yellow-700 text-yellow-200 p-4 rounded-lg mb-6 text-center">
             {error}
           </div>
         )}
 
-        {/* Alert Stats */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card className="border-red-500/30 bg-red-500/10">
             <CardContent className="pt-6">
@@ -97,18 +127,21 @@ export default function Alerts() {
               <p className="text-3xl font-bold text-red-400 mt-2">{stats.critical}</p>
             </CardContent>
           </Card>
+
           <Card className="border-orange-500/30 bg-orange-500/10">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">High Risk</p>
               <p className="text-3xl font-bold text-orange-400 mt-2">{stats.high}</p>
             </CardContent>
           </Card>
+
           <Card className="border-yellow-500/30 bg-yellow-500/10">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Medium Risk</p>
               <p className="text-3xl font-bold text-yellow-400 mt-2">{stats.medium}</p>
             </CardContent>
           </Card>
+
           <Card className="border-blue-500/30 bg-blue-500/10">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Normal Traffic</p>
@@ -117,7 +150,7 @@ export default function Alerts() {
           </Card>
         </div>
 
-        {/* Alert Timeline */}
+        {/* Chart */}
         <Card className="border-border bg-card mb-8">
           <CardHeader>
             <CardTitle className="text-foreground">Alert Trends (24h)</CardTitle>
@@ -138,66 +171,60 @@ export default function Alerts() {
           </CardContent>
         </Card>
 
-        {/* Alert Filters */}
-        <Card className="border-border bg-card mb-8">
+        {/* Table */}
+        <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">Alert Log</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by IP address or alert type..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-input border-border text-foreground"
-                />
-              </div>
+
+            <div className="relative mb-6">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by IP or alert type..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="w-8 h-8 border-2 border-neon-green/30 border-t-neon-green rounded-full animate-spin" />
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-b border-border hover:bg-transparent">
-                      <TableHead className="text-foreground font-semibold">Timestamp</TableHead>
-                      <TableHead className="text-foreground font-semibold">Source IP</TableHead>
-                      <TableHead className="text-foreground font-semibold">Destination IP</TableHead>
-                      <TableHead className="text-foreground font-semibold">Protocol</TableHead>
-                      <TableHead className="text-foreground font-semibold">Model Used</TableHead>
-                      <TableHead className="text-foreground font-semibold">Status</TableHead>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Timestamp</TableHead>
+                    <TableHead>Source IP</TableHead>
+                    <TableHead>Destination IP</TableHead>
+                    <TableHead>Protocol</TableHead>
+                    <TableHead>Model</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {filteredAlerts.slice(0, 50).map((alert, index) => (
+                    <TableRow key={`${alert.timestamp}-${index}`}>
+                      <TableCell>{new Date(alert.timestamp).toLocaleString()}</TableCell>
+                      <TableCell>{alert.source_ip || 'N/A'}</TableCell>
+                      <TableCell>{alert.destination_ip || 'N/A'}</TableCell>
+                      <TableCell>{alert.protocol || 'N/A'}</TableCell>
+                      <TableCell>{alert.model_used}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded ${getSeverityColor(alert.label)}`}>
+                          {alert.label}
+                        </span>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAlerts.slice(0, 50).map((alert, index) => (
-                      <TableRow key={`${alert.timestamp}-${index}`} className="border-b border-border/50 hover:bg-muted/50">
-                        <TableCell className="text-muted-foreground text-sm font-mono">
-                          {new Date(alert.timestamp).toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-foreground font-mono text-sm">{alert.source_ip || 'N/A'}</TableCell>
-                        <TableCell className="text-foreground font-mono text-sm">{alert.destination_ip || 'N/A'}</TableCell>
-                        <TableCell className="text-foreground">{alert.protocol || 'N/A'}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{alert.model_used}</TableCell>
-                        <TableCell>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getSeverityColor(alert.label)}`}>
-                            {alert.label}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+                  ))}
+                </TableBody>
+
+              </Table>
+            </div>
+
           </CardContent>
         </Card>
+
       </div>
     </div>
   )
 }
-

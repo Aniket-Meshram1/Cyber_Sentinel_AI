@@ -41,11 +41,11 @@ export default function TrafficMonitor() {
 
   const fetchStatsData = async () => {
     try {
-      const data = await fetchStats()
-      setStats(data)
-      setError(null)
-    } catch (e) {
-      setError(`Failed to fetch stats: ${e instanceof Error ? e.message : 'Unknown error'}`)
+      const res = await fetchStats()
+      setStats(res.data ?? {
+        total_flows: 0, normal: 0, attacks: 0, recent_attack_ratio: 0, status: 'SAFE'
+      })
+      if (res.error) console.warn('Stats error:', res.error)
     } finally {
       setLoading(false)
     }
