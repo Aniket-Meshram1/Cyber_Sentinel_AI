@@ -52,15 +52,20 @@ export default function AttackAnalytics() {
 
   const fetchStatsData = async () => {
     try {
-      const data = await fetchStats()
-      setStats(data)
-      setError(null)
+      const res = await fetchStats()
+      setStats(res.data ?? null)
+      if (res.error) {
+        setError(res.error)
+      } else {
+        setError(null)
+      }
     } catch (e) {
       setError(`Failed to fetch stats: ${e instanceof Error ? e.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
   }
+
 
   useEffect(() => {
     fetchStatsData()
