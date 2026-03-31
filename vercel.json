@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://cyber-sentinel-ai-1.onrender.com/api/:path*"
+    },
+    {
+      "source": "/predict",
+      "destination": "https://cyber-sentinel-ai-1.onrender.com/predict"
+    },
+    {
+      "source": "/predict-csv",
+      "destination": "https://cyber-sentinel-ai-1.onrender.com/predict-csv"
+    }
+  ]
+}
