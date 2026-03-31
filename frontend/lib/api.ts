@@ -12,6 +12,8 @@ export interface SystemStats {
   attacks: number;
   recent_attack_ratio: number;
   status: "SAFE" | "THREAT";
+  packets_per_sec: number;
+  bytes_per_sec: number;
 }
 
 /**
@@ -229,4 +231,3 @@ export async function checkBackendHealth(): Promise<boolean> {
     return false;
   }
 }
-
