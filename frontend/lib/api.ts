@@ -1,8 +1,7 @@
 // frontend/lib/api.ts
 
-// By using a relative path, we can leverage Netlify redirects in production
+// By using relative paths, we leverage Netlify redirects in production
 // and Next.js rewrites in local development.
-const API_BASE_URL = "https://cyber-sentinel-ai-1.onrender.com";
 
 /**
  * Defines the structure for the main statistics object from the backend.
@@ -133,7 +132,7 @@ export interface FlowDataInput {
  * Fetches the main system statistics from the backend.
  */
 export async function fetchStats(): Promise<SystemStats> {
-  const response = await fetch(`${API_BASE_URL}/api/stats`, { cache: "no-store" });
+  const response = await fetch(`/api/stats`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to fetch system stats: ${response.statusText}`);
   }
@@ -144,7 +143,7 @@ export async function fetchStats(): Promise<SystemStats> {
  * Fetches the list of recent alerts from the backend.
  */
 export async function fetchAlerts(): Promise<ApiAlert[]> {
-  const response = await fetch(`${API_BASE_URL}/api/alerts`, { cache: "no-store" });
+  const response = await fetch(`/api/alerts`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to fetch alerts: ${response.statusText}`);
   }
@@ -157,7 +156,7 @@ export async function fetchAlerts(): Promise<ApiAlert[]> {
  * Get the latest prediction from the backend.
  */
 export async function fetchLatestPrediction(): Promise<PredictionResult> {
-  const response = await fetch(`${API_BASE_URL}/api/latest`, { cache: "no-store" });
+  const response = await fetch(`/api/latest`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to fetch latest prediction: ${response.statusText}`);
   }
@@ -170,7 +169,7 @@ export async function fetchLatestPrediction(): Promise<PredictionResult> {
  * @param modelName - Optional model name (default: xgboost)
  */
 export async function predictFlow(flowData: FlowDataInput, modelName: string = "xgboost"): Promise<PredictionResult> {
-  const response = await fetch(`${API_BASE_URL}/predict?model=${modelName}`, {
+  const response = await fetch(`/api/predict?model=${modelName}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -193,7 +192,7 @@ export async function predictCSV(file: File, modelName: string = "xgboost"): Pro
   const formData = new FormData();
   formData.append("file", file);
   
-  const response = await fetch(`${API_BASE_URL}/predict-csv?model=${modelName}`, {
+  const response = await fetch(`/api/predict-csv?model=${modelName}`, {
     method: "POST",
     body: formData,
   });
@@ -208,7 +207,7 @@ export async function predictCSV(file: File, modelName: string = "xgboost"): Pro
  * Get available models from the backend.
  */
 export async function getAvailableModels(): Promise<string[]> {
-  const response = await fetch(`${API_BASE_URL}/api/health`, { cache: "no-store" });
+  const response = await fetch(`/api/health`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to fetch models: ${response.statusText}`);
   }
@@ -221,7 +220,7 @@ export async function getAvailableModels(): Promise<string[]> {
  */
 export async function checkBackendHealth(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/health`, { 
+    const response = await fetch(`/api/health`, { 
       method: "GET",
       signal: AbortSignal.timeout(5000)
     });
@@ -230,3 +229,4 @@ export async function checkBackendHealth(): Promise<boolean> {
     return false;
   }
 }
+
