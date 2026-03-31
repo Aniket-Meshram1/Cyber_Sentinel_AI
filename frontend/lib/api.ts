@@ -2,7 +2,7 @@
 
 // By using a relative path, we can leverage Netlify redirects in production
 // and Next.js rewrites in local development.
-const API_BASE_URL = "";
+const API_BASE_URL = "https://cyber-sentinel-ai-1.onrender.com";
 
 /**
  * Defines the structure for the main statistics object from the backend.

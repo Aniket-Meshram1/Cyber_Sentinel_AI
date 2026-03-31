@@ -9,6 +9,6 @@
 # Redirect API calls to backend (update URL after deploying backend)
 [[redirects]]
   from = "/api/*"
-  to = "https://cyber-sentinelai.onrender.com/api/:splat"
+  to = "https://cyber-sentinel-ai-1.onrender.com/api/:splat"
   status = 200
   force = true
