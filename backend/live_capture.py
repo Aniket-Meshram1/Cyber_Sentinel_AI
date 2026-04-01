@@ -102,7 +102,7 @@ model = joblib.load(MODEL_PATH)
 # --- Backend Health Check & Model Sync ---
 print(f"Checking backend health at {API_URL}...")
 try:
-    resp = requests.get(f"{API_URL}/", timeout=5)
+    resp = requests.get(f"{API_URL}/api/health", timeout=5)
     if resp.status_code == 200:
         data = resp.json()
         available = data.get('available_models', [])
@@ -196,7 +196,7 @@ try:
             # SEND EVERY FLOW TO BACKEND
             try:
                 response = requests.post(
-                    f"{API_URL}/predict?model={API_MODEL}",
+                    f"{API_URL}/api/predict?model={API_MODEL}",
                     json=json_payload,
                     timeout=2
                 )

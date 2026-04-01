@@ -53,7 +53,7 @@ for name, file in MODEL_PATHS.items():
         except Exception as e:
             logging.error(f"Failed loading {name}: {e}")
 
-@app.route("/", methods=["GET"])
+@app.route("/api/", methods=["GET"])
 def home():
     return jsonify({"status": "Cyber Sentinel AI Backend Running", "available_models": list(MODELS.keys())})
 
@@ -61,7 +61,7 @@ def home():
 def health_check():
     return jsonify({"status": "ok", "available_models": list(MODELS.keys())})
 
-@app.route("/predict", methods=["POST"])
+@app.route("/api/predict", methods=["POST"])
 def predict():
     try:
         model_name = request.args.get("model", "xgboost")
@@ -95,7 +95,7 @@ def predict():
         logging.error(f"Prediction Error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route("/predict-csv", methods=["POST"])
+@app.route("/api/predict-csv", methods=["POST"])
 def predict_csv():
     try:
         model_name = request.args.get("model", "xgboost")
