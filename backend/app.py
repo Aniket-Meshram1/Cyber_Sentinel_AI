@@ -4,11 +4,11 @@ import logging
 from collections import deque
 import joblib
 import pandas as pd
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://your-vercel-app.vercel.app"])  # Replace with your actual Vercel URL
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(BASE_DIR))
@@ -52,6 +52,10 @@ for name, file in MODEL_PATHS.items():
             logging.info(f"Loaded model: {name}")
         except Exception as e:
             logging.error(f"Failed loading {name}: {e}")
+
+@app.route("/", methods=["GET"])
+def root():
+    return redirect("/api/")
 
 @app.route("/api/", methods=["GET"])
 def home():
@@ -133,4 +137,5 @@ def get_alerts():
     return jsonify(list(alerts))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
