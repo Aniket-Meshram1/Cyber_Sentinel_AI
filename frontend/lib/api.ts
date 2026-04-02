@@ -1,6 +1,4 @@
-// frontend/lib/api.ts
-
-const BASE_URL = "/api"
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://cyber-sentinel-ai-1.onrender.com/api";
 
 // Generic safe API handler
 async function safeApiCall<T>(
@@ -9,8 +7,8 @@ async function safeApiCall<T>(
   retries = 3
 ): Promise<{ data: T | null; error: string | null }> {
   for (let i = 0; i <= retries; i++) {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 10000)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
     try {
       const res = await fetch(`${BASE_URL}${endpoint}`, {
@@ -20,54 +18,54 @@ async function safeApiCall<T>(
         },
         ...options,
         signal: controller.signal,
-      })
+      });
 
-      clearTimeout(timeout)
+      clearTimeout(timeout);
 
-      // ✅ Success
+      // Success
       if (res.ok) {
         try {
-          const json = await res.json()
-          return { data: json, error: null }
+          const json = await res.json();
+          return { data: json, error: null };
         } catch {
-          return { data: null, error: "Invalid JSON response" }
+          return { data: null, error: "Invalid JSON response" };
         }
       }
 
-      // ❌ Don't retry client errors (400–499)
+      // Don't retry client errors (400–499)
       if (res.status >= 400 && res.status < 500) {
-        return { data: null, error: `Client error ${res.status}` }
+        return { data: null, error: `Client error ${res.status}` };
       }
 
-      // 🔁 Retry for server errors
+      // Retry for server errors
       if (i < retries) {
-        await new Promise((r) => setTimeout(r, 2000 * (i + 1)))
-        continue
+        await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+        continue;
       }
 
-      return { data: null, error: `Server error ${res.status}` }
+      return { data: null, error: `Server error ${res.status}` };
 
     } catch (err: any) {
-      clearTimeout(timeout)
+      clearTimeout(timeout);
 
       // Abort / timeout
       if (err.name === "AbortError") {
         if (i === retries) {
-          return { data: null, error: "Request timeout" }
+          return { data: null, error: "Request timeout" };
         }
       }
 
       // Network retry
       if (i < retries) {
-        await new Promise((r) => setTimeout(r, 2000 * (i + 1)))
-        continue
+        await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+        continue;
       }
 
-      return { data: null, error: "Network error" }
+      return { data: null, error: "Network error" };
     }
   }
 
-  return { data: null, error: "Unknown error" }
+  return { data: null, error: "Unknown error" };
 }
 
 // -----------------------------
@@ -75,21 +73,21 @@ async function safeApiCall<T>(
 // -----------------------------
 
 export interface SystemStats {
-  total_flows: number
-  normal: number
-  attacks: number
-  recent_attack_ratio: number
-  status: "SAFE" | "THREAT"
+  total_flows: number;
+  normal: number;
+  attacks: number;
+  recent_attack_ratio: number;
+  status: "SAFE" | "THREAT";
 }
 
 export interface ApiAlert {
-  model_used: string
-  prediction: 0 | 1
-  label: "Normal" | "DDoS Attack"
-  timestamp: string
-  source_ip?: string
-  destination_ip?: string
-  protocol?: string
+  model_used: string;
+  prediction: 0 | 1;
+  label: "Normal" | "DDoS Attack";
+  timestamp: string;
+  source_ip?: string;
+  destination_ip?: string;
+  protocol?: string;
 }
 
 // -----------------------------
@@ -102,28 +100,28 @@ const FALLBACK_STATS: SystemStats = {
   attacks: 0,
   recent_attack_ratio: 0,
   status: "SAFE",
-}
+};
 
 // -----------------------------
 // API Functions
 // -----------------------------
 
 export async function fetchStats() {
-  const { data, error } = await safeApiCall<SystemStats>("/stats")
-  return { data: data || FALLBACK_STATS, error }
+  const { data, error } = await safeApiCall<SystemStats>("/stats");
+  return { data: data || FALLBACK_STATS, error };
 }
 
 export async function fetchAlerts() {
-  const { data, error } = await safeApiCall<ApiAlert[]>("/alerts")
-  return { data: data || [], error }
+  const { data, error } = await safeApiCall<ApiAlert[]>("/alerts");
+  return { data: data || [], error };
 }
 
 export async function getAvailableModels() {
-  const { data, error } = await safeApiCall<{ available_models: string[] }>("/health")
+  const { data, error } = await safeApiCall<{ available_models: string[] }>("/health");
   return {
     data: data?.available_models || ["xgboost", "lightgbm"],
     error,
-  }
+  };
 }
 
 // -----------------------------
@@ -141,18 +139,18 @@ export async function predictFlow(
       body: JSON.stringify(flowData),
     },
     1
-  )
+  );
 
-  if (error) throw new Error(error)
-  return data
+  if (error) throw new Error(error);
+  return data;
 }
 
 export async function predictCSV(
   file: File,
   model = "xgboost"
 ) {
-  const formData = new FormData()
-  formData.append("file", file)
+  const formData = new FormData();
+  formData.append("file", file);
 
   const { data, error } = await safeApiCall(
     `/predict-csv?model=${model}`,
@@ -161,10 +159,10 @@ export async function predictCSV(
       body: formData,
     },
     1
-  )
+  );
 
-  if (error) throw new Error(error)
-  return data
+  if (error) throw new Error(error);
+  return data;
 }
 
 // -----------------------------
@@ -172,6 +170,6 @@ export async function predictCSV(
 // -----------------------------
 
 export async function checkBackendHealth(): Promise<boolean> {
-  const { data } = await safeApiCall("/health")
-  return !!data
+  const { data } = await safeApiCall("/health");
+  return !!data;
 }
