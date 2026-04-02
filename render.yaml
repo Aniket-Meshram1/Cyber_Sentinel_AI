@@ -1,7 +1,7 @@
 services:
   - type: web
     name: cyber-sentinel-backend
-    repo: https://github.com/Aniket-Meshram1/Cyber_Sentinel_AI
+    repo: https://github.com/Danish3803/Cyber_Sentinel_AI
     env: python
     region: oregon
     buildCommand: cd backend && pip install -r requirements.txt
