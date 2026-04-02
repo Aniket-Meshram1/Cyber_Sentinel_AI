@@ -8,3 +8,4 @@ xgboost
 lightgbm
 joblib
 requests
+gevent>=22.10.2
