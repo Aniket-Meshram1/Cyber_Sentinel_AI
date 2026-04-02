@@ -14,8 +14,8 @@ sys.path.append(os.path.dirname(BASE_DIR))
 from utils.preprocess_input import preprocess_input
 
 # Configuration
-API_URL = "https://cyber-sentinelai.onrender.com"
-API_MODEL = "random_forest"  # Model to use on the backend (must match a model loaded in app.py)
+API_URL = "http://127.0.0.1:5000"
+API_MODEL = "random_forest"  
 
 flows = {}
 
