@@ -8,8 +8,8 @@ __pycache__/
 venv/
 .env/
 
-# Logs
-logs/
+# Only ignore backend logs
+backend/logs/
 *.log
 
 # Jupyter
